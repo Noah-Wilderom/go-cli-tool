@@ -19,7 +19,7 @@ func RunProduction(cCtx *cli.Context) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go utils.CopyDir(utils.ResourcesFolder(pType, language), cwd, &wg)
+	go utils.CopyDir(utils.ResourcesFolder("production", pType, language), cwd, &wg)
 	wg.Wait()
 
 	fmt.Println("Done.")
