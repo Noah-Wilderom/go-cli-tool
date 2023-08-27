@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduler
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: scheduled
+              image: laravel-kubernetes-fpm:latest
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - configMapRef:
+                    name: laravel-kubernetes-configmap
+                - secretRef:
+                    name: laravel-kubernetes-secrets
+              command:
+                - "php"
+              args:
+                - "artisan"
+                - "schedule:run"
+          restartPolicy: OnFailure

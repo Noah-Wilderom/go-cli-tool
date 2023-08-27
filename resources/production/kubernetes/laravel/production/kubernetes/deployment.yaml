@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-kubernetes
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: laravel-kubernetes
+  template:
+    metadata:
+      labels:
+        app: laravel-kubernetes
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "80"
+    spec:
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: testing
+          emptyDir: {}
+        - name: sessions
+          emptyDir: {}
+        - name: views
+          emptyDir: {}
+      securityContext:
+        fsGroup: 82
+      initContainers:
+        - name: database-migrations
+          image: laravel-kubernetes-fpm:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: laravel-kubernetes-configmap
+            - secretRef:
+                name: laravel-kubernetes-secrets
+          command:
+            - "php"
+          args:
+            - "artisan"
+            - "migrate"
+            - "--force"
+      containers:
+        - name: nginx
+          image: laravel-kubernetes-nginx:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 750m
+              memory: 250M
+          ports:
+            - containerPort: 80
+        - name: fpm
+          envFrom:
+            - configMapRef:
+                name: laravel-kubernetes-configmap
+            - secretRef:
+                name: laravel-kubernetes-secrets
+          securityContext:
+            runAsUser: 82
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: logs
+              mountPath: /var/www/html/storage/logs
+            - name: cache
+              mountPath: /var/www/html/storage/framework/cache
+            - name: sessions
+              mountPath: /var/www/html/storage/framework/sessions
+            - name: views
+              mountPath: /var/www/html/storage/framework/views
+            - name: testing
+              mountPath: /var/www/html/storage/framework/testing
+          resources: {}
+          image: laravel-kubernetes-fpm:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9000
